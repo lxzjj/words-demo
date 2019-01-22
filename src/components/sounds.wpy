@@ -1,0 +1,156 @@
+<style lang="less" scoped>
+@import "../common.less";
+.sounds-wrapper {
+  display: block;
+  position: relative;
+
+  .sounds {
+    display: flex;
+    flex-direction: row;
+    position: relative;
+
+    .toggle {
+      display: flex;
+      flex-direction: row;
+      position: relative;
+      border-radius: 6vw;
+      border: 1px solid @main-color;
+      font-size: 10px;
+      height: 6vw;
+      justify-content: center;
+      align-items: center;
+      padding: 1px 5px;
+      margin-right: 2vw;
+
+      .toggle-item {
+        display: block;
+        position: relative;
+        width: 5vw;
+        height: 5vw;
+        line-height: 5vw;
+        border-radius: 5vw;
+        text-align: center;
+        color: @main-color;
+
+        &.active {
+          color: white;
+          background: @main-color;
+        }
+      }
+    }
+
+    .sound {
+      display: block;
+      position: relative;
+      height: 6vw;
+      width: 6vw;
+      text-align: center;
+      line-height: 6vw;
+      border: 1px solid @main-color;
+      border-radius: 6vw;
+      padding: 1px;
+      font-size: 14px;
+      margin-right: 2vw;
+      &:last-child {
+        margin-right: 0;
+      }
+    }
+  }
+}
+
+</style>
+
+<template>
+  <view class="sounds-wrapper" wx:if="{{ audios && render }}" >
+    <view class="sounds" >
+      <view class="toggle" >
+        <view class="toggle-item {{ showEnglish ? '' : 'active' }}" @tap="handleToggle('american')" >美</view>
+        <view class="toggle-item {{ showEnglish ? 'active' : '' }}" @tap="handleToggle('english')" >英</view>
+      </view>
+      <view class="sound" @tap="playAudio('man')">男</view>
+      <view class="sound" @tap="playAudio('woman')">女</view>
+    </view>
+  </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+export default class Sounds extends wepy.component {
+  props = {
+    playWhenChanged: {
+      type: [Boolean, String],
+      default: false,
+      coerce(v) {
+        return typeof v === 'string' ? JSON.parse(v) : v
+      }
+    },
+    render: {
+      type: [Boolean, String],
+      default: true,
+      coerce(v) {
+        return typeof v === 'string' ? JSON.parse(v) : v
+      }
+    },
+    audios: {
+      type: Object,
+      value: null
+    },
+    showEnglish: {
+      type: [Boolean, String],
+      default: true,
+      coerce(v) {
+        return typeof v === 'string' ? JSON.parse(v) : v
+      }
+    }
+  }
+
+  watch = {
+    audios() {
+      if (this.playWhenChanged) {
+        console.log(this.audios)
+        this.playBackgroundAudio()
+      }
+    }
+  }
+
+  methods = {
+    handleToggle(value) {
+      const shouldToggle =
+        (this.showEnglish && value === 'american') ||
+        (!this.showEnglish && value === 'english')
+      shouldToggle && this.$emit('toggle-style', !this.showEnglish)
+    },
+    playAudio(value) {
+      this.playBackgroundAudio(value)
+    }
+  }
+
+  playBackgroundAudio(value) {
+    if (!this.audios) {
+      return wepy.showToast({ title: '找不到音频文件', icon: 'none' })
+    }
+
+    const audio = this.showEnglish
+      ? this.audios.english
+      : this.audios.american
+
+    const audioInSpecificStyle = value === 'woman'
+      ? audio.audioInWomanVoice
+      : audio.audioInManVoice
+
+    if (!audioInSpecificStyle) {
+      return wepy.showToast({ title: '找不到音频文件', icon: 'none' })
+    }
+
+    const innerAudioContext = wepy.createInnerAudioContext()
+    const stopPlaying = () => innerAudioContext.destroy()
+    innerAudioContext.autoplay = false
+    innerAudioContext.src = audioInSpecificStyle
+    innerAudioContext.play()
+    innerAudioContext.onError(stopPlaying)
+    innerAudioContext.onStop(stopPlaying)
+    innerAudioContext.onPause(stopPlaying)
+  }
+}
+
+</script>

@@ -1,0 +1,231 @@
+<style lang="less" scoped>
+@import "../common.less";
+
+.wrapper {
+  display: block;
+  position: relative;
+  padding: 0 5vw;
+  font-size: 16px;
+
+  .info {
+    display: flex;
+    position: relative;
+    flex-direction: row;
+    color: @darken-main-color;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5vw;
+
+  }
+
+  .write {
+    display: block;
+    position: relative;
+    margin-top: 10vw;
+    margin-bottom: 5vw;
+
+    .editing {
+      display: flex;
+      flex-direction: row;
+      position: relative;
+      width: 90vw;
+      height: 10vw;
+      line-height: 10vw;
+      border-bottom: 1px solid @darken-main-color;
+
+      &.correct { .input { color: @main-color; } }
+      &.error { .input { color: rgb(227, 82, 103); } }
+
+      .icon {
+        display: block;
+        position: relative;
+        width: 10vw;
+        height: 10vw;
+        text-align: center;
+        line-height: 10vw;
+        color: #707070;
+        font-size: 25px;
+      }
+
+      .input {
+        display: block;
+        position: relative;
+        height: 10vw;
+        line-height: 10vw;
+        flex: 1;
+      }
+    }
+
+    .button-wrap {
+      display: flex;
+      position: relative;
+      flex-direction: row;
+      margin: 5vw 0;
+      justify-content: flex-end;
+
+      .button {
+        display: block;
+        position: relative;
+        width: 20vw;
+        height: 8vw;
+        line-height: 8vw;
+        border-radius: 8vw;
+        text-align: center;
+        margin: 0 2vw;
+        color: #707070;
+        border: 1px solid #707070;
+        &.active {
+          color: @darken-main-color;
+          border: 1px solid @main-color;
+        }
+      }
+    }
+
+    .answer {
+      color: @darken-main-color;
+      font-weight: bold;
+      font-size: 1.2em;
+
+      .text {
+        margin: 5vw 0;
+      }
+    }
+  }
+}
+</style>
+
+<template>
+  <view class="wrapper" >
+
+    <view class="word-tab" wx:if="{{ showWordTab }}" >
+      <view class="info" >
+        <WordSounds
+          :showEnglish.sync="showEnglish"
+          :audios.sync="word" />
+      </view>
+    </view>
+
+    <view class="statement-tab" wx:else >
+      <view class="info" >
+        <StatementSounds
+          :showEnglish.sync="showEnglish"
+          :audios.sync="statement" />
+      </view>
+    </view>
+
+    <view class="write" >
+      <view class="editing" :class="{ correct: !isEditing && result && result.isCorrect, error: !isEditing && result && !result.isCorrect }" >
+        <view wx:if="{{ !inputValue && !isEditing }}" class="icon fa fa-pencil-square-o" ></view>
+        <input
+          @change="handleChangeInput"
+          @blur="handleBlurInput"
+          @focus="handleFocusInput"
+          value="{{ inputValue }}"
+          class="input"
+          type="text"
+          placeholder="{{ showWordTab ? '输入单词' : '输入例句' }}" />
+      </view>
+
+      <view class="button-wrap" wx:if="{{ !result }}" >
+        <view class="button {{ inputValue ? 'active' : '' }}" @tap="handleCheckValue" >检查</view>
+      </view>
+      <view class="answer" wx:else >
+        <view class="text" >{{ showWordTab ? word.value : statement.value }}</view>
+        <view class="text" wx:if="{{ statement.hasNext }}" @tap="moveNextStatement" >下一句</view>
+      </view>
+    </view>
+
+  </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+import Sounds from '../components/sounds'
+
+export default class WritePage extends wepy.component {
+  components = {
+    WordSounds: Sounds,
+    StatementSounds: Sounds
+  }
+
+  data = {
+    inputValue: '',
+    isEditing: false,
+    result: null
+  }
+
+  props = {
+    word: {
+      type: Object,
+      default: null
+    },
+    statement: {
+      type: Object,
+      default: null
+    },
+    showWordTab: {
+      type: [Boolean, String],
+      default: true,
+      coerce(v) {
+        return typeof v === 'string' ? JSON.parse(v) : v
+      }
+    },
+    showEnglish: {
+      type: [Boolean, String],
+      default: true,
+      coerce(v) {
+        return typeof v === 'string' ? JSON.parse(v) : v
+      }
+    }
+  }
+
+  watch = {
+    showWordTab() {
+      this.inputValue = ''
+      this.isEditing = false
+      this.result = null
+      this.$apply()
+    }
+  }
+
+  computed = {
+    pronunciation() {
+      if (this.word) {
+        if (this.showEnglish) {
+          return this.word.english.pronunciation
+        } else {
+          return this.word.american.pronunciation
+        }
+      }
+    }
+  }
+
+  methods = {
+    handleChangeInput(e) {
+      const value = e.detail.value || ''
+      this.inputValue = value
+      this.result = null
+    },
+    handleBlurInput() {
+      this.isEditing = false
+    },
+    handleFocusInput() {
+      this.isEditing = true
+      this.result = null
+    },
+    handleCheckValue() {
+      const value = this.showWordTab ? this.word.value : this.statement.value
+      if (this.inputValue) {
+        const isCorrect = this.inputValue === value
+        this.result = { isCorrect }
+      }
+    },
+    moveNextStatement() {
+      this.inputValue = ''
+      this.isEditing = false
+      this.result = null
+      this.$emit('next-statement', this.statement)
+    }
+  }
+}
+</script>

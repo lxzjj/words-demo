@@ -1,0 +1,304 @@
+<style lang="less" scoped>
+@import "../common.less";
+
+.wrapper {
+  display: block;
+  position: relative;
+  padding: 0 5vw;
+  font-size: 16px;
+
+  .content {
+    color: @darken-main-color;
+    font-weight: bold;
+    font-size: 1.2em;
+    margin-bottom: 5vw;
+  }
+
+  .info {
+    display: flex;
+    position: relative;
+    flex-direction: row;
+    color: @darken-main-color;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5vw;
+
+    .pronunciation {
+      display: block;
+      position: relative;
+    }
+
+    .next-statement {
+      font-weight: bold;
+      .text {
+        margin-right: 1vw;
+      }
+    }
+  }
+
+  .translation {
+    padding: 5vw 0;
+    color: @darken-main-color;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  .record {
+    display: block;
+    position: relative;
+    margin-top: 10vw;
+    margin-bottom: 5vw;
+
+    .buttons {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-end;
+      margin-bottom: 5vw;
+
+      .button {
+        display: block;
+        position: relative;
+        margin: 0 5vw;
+
+        .tips {
+          color: #707070;
+          text-align: center;
+          margin: 2vw 0;
+        }
+
+        .icon {
+          display: block;
+          position: relative;
+          background: #ccc;
+          color: white;
+          text-align: center;
+          height: 15vw;
+          line-height: 15vw;
+          width: 15vw;
+          border-radius: 15vw;
+          font-size: 30px;
+          margin: 0 auto;
+        }
+
+        .text {
+          margin: 2vw 0;
+          text-align: center;
+          color: #707070;
+        }
+
+        &.orange {
+          .tips {
+            color: rgb(252, 179, 44);
+          }
+          .icon {
+            background: rgb(252, 179, 44);
+          }
+        }
+      }
+    }
+
+    .result {
+      display: block;
+      position: relative;
+
+      .content {
+        color: rgb(227, 82, 103);
+      }
+
+      .evaluation {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        border-top: 1px solid #f0f0f0;
+        color: #707070;
+        padding: 5vw 0;
+      }
+    }
+  }
+}
+</style>
+
+<template>
+  <view class="wrapper" >
+
+    <view class="word-tab" wx:if="{{ showWordTab }}" >
+      <view class="content">{{ word.value }}</view>
+      <view class="info" >
+        <view class="pronunciation">{{ pronunciation }}</view>
+        <WordSounds
+          :showEnglish.sync="showEnglish"
+          :audios.sync="word" />
+      </view>
+    </view>
+
+    <view class="statement-tab" wx:else >
+      <view class="content">{{ statement.value }}</view>
+      <view class="info" >
+        <StatementSounds
+          :showEnglish.sync="showEnglish"
+          :audios.sync="statement" />
+        <view class="next-statement" wx:if="{{ statement.hasNext }}" @tap="moveNextStatement" >
+          <text class="text" >下一句</text>
+          <text class="fa fa-chevron-right" ></text>
+          <text class="fa fa-chevron-right" ></text>
+        </view>
+      </view>
+    </view>
+
+    <view class="record" >
+      <view class="buttons">
+        <view class="button" bind:longpress="handleStartRecord" bind:touchend="handleStopRecord" >
+          <view class="tips" ></view>
+          <view class="icon fa fa-microphone" ></view>
+          <view class="text" >{{ inputSound ? '按住重录' : '按住录音' }}</view>
+        </view>
+        <view class="button orange" wx:if="{{ inputSound }}" @tap="handlePlaySound" >
+          <view class="tips" >再来一次!</view>
+          <view class="icon fa fa-volume-up" ></view>
+          <view class="text" >点击重播</view>
+        </view>
+      </view>
+      <view class="result" wx:if="{{ inputSound && result }}" >
+        <view class="content" >{{ result.translation }}</view>
+        <view class="evaluation">
+          <view class="name" >自我评价：</view>
+          <radio-group class="radio-group" @change="handleEvaluationChange">
+            <label class="radio" > <radio value="1" color="rgb(162, 198, 16)" /> 好 </label>
+            <label class="radio" > <radio value="0" color="rgb(162, 198, 16)" /> 不好 </label>
+          </radio-group>
+        </view>
+      </view>
+    </view>
+
+  </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+import Sounds from '../components/sounds'
+
+const recorderManager = wepy.getRecorderManager()
+const recorderStatus = { isRecording: false }
+
+export default class SpeakPage extends wepy.component {
+  components = {
+    WordSounds: Sounds,
+    StatementSounds: Sounds
+  }
+
+  data = {
+    inputSound: '',
+    result: null,
+    isEvaluated: false
+  }
+
+  props = {
+    word: {
+      type: Object,
+      default: null
+    },
+    statement: {
+      type: Object,
+      default: null
+    },
+    showWordTab: {
+      type: [Boolean, String],
+      default: true,
+      coerce(v) {
+        return typeof v === 'string' ? JSON.parse(v) : v
+      }
+    },
+    showEnglish: {
+      type: [Boolean, String],
+      default: true,
+      coerce(v) {
+        return typeof v === 'string' ? JSON.parse(v) : v
+      }
+    }
+  }
+
+  watch = {
+    showWordTab() {
+      this.inputSound = ''
+      this.result = null
+      this.isEvaluated = false
+      this.$apply()
+    },
+    inputSound(newValue) {
+      if (newValue) {
+        this.isEvaluated = false
+        this.result = { translation: '这是随便生成的语音识别文字' }
+        this.$apply()
+      }
+    }
+  }
+
+  computed = {
+    pronunciation() {
+      if (this.word) {
+        if (this.showEnglish) {
+          return this.word.english.pronunciation
+        } else {
+          return this.word.american.pronunciation
+        }
+      }
+    }
+  }
+
+  methods = {
+    handleStartRecord() {
+      if (recorderStatus.isRecording) {
+        return
+      }
+
+      wepy.showLoading({ title: '录音中', mask: true })
+      const stopRecord = (e) => {
+        const tempFilePath = e.tempFilePath || ''
+        this.inputSound = tempFilePath
+        this.$apply()
+
+        if (recorderManager.isRecording) {
+          recorderManager.stop()
+        }
+        recorderStatus.isRecording = false
+        wepy.hideLoading()
+      }
+      recorderManager.onStop(stopRecord)
+      recorderManager.onError(stopRecord)
+      recorderManager.onPause(stopRecord)
+      recorderManager.start({
+        format: 'mp3',
+        duration: 20 * 1000
+      })
+      recorderStatus.isRecording = true
+    },
+    handleStopRecord() {
+      if (recorderStatus.isRecording) {
+        recorderManager.stop()
+      }
+    },
+    handlePlaySound() {
+      if (this.inputSound) {
+        const innerAudioContext = wepy.createInnerAudioContext()
+        const stopPlaying = () => innerAudioContext.destroy()
+        innerAudioContext.autoplay = false
+        innerAudioContext.src = this.inputSound
+        innerAudioContext.play()
+        innerAudioContext.onError(stopPlaying)
+        innerAudioContext.onStop(stopPlaying)
+        innerAudioContext.onPause(stopPlaying)
+      }
+    },
+    handleEvaluationChange(e) {
+      /* TODO 将自我评价的值 e.detail.value 上报服务器 */
+      this.isEvaluated = true
+    },
+    moveNextStatement() {
+      this.inputSound = ''
+      this.result = null
+      this.isEvaluated = false
+      this.$emit('next-statement', this.statement)
+    }
+  }
+}
+</script>

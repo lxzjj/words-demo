@@ -1,0 +1,378 @@
+<style lang="less" scoped>
+@import (css) "../font-awesome.wxss";
+@import "../common.less";
+
+.wrapper {
+  display: block;
+  position: relative;
+  font-size: 16px;
+
+  .header {
+    display: block;
+    position: relative;
+    margin: 0 auto;
+    width: 100vw;
+
+    .background {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 6vw;
+      background: @main-color;
+    }
+
+    .options {
+      display: flex;
+      flex-direction: row;
+      position: relative;
+      width: 100vw;
+      box-sizing: border-box;
+      height: 18vw;
+      padding: 0 5vw;
+      align-items: center;
+
+      .actions {
+        display: flex;
+        flex-direction: row;
+        width: 22vw;
+
+        .action {
+          display: block;
+          position: relative;
+          width: 8vw;
+          height: 8vw;
+          line-height: 8vw;
+          font-size: 22px;
+          text-align: center;
+          color: @main-color;
+          margin-right: 3vw;
+          &.active {
+            color: rgb(251, 198, 49);
+          }
+        }
+      }
+
+      .tabs {
+        display: flex;
+        flex-direction: row;
+        position: relative;
+        width: 45vw;
+        justify-content: space-between;
+
+        .tab {
+          display: block;
+          position: relative;
+          color: @main-color;
+          width: 20vw;
+          height: 8vw;
+          line-height: 8vw;
+          border-radius: 8vw;
+          text-align: center;
+          margin: 0 2vw;
+          border: 1px solid @main-color;
+
+          &.active {
+            color: white;
+            background: @main-color;
+          }
+        }
+      }
+    }
+
+    .nav {
+      display: flex;
+      flex-direction: row;
+      position: relative;
+      width: 80vw;
+      height: 12vw;
+      margin: 0 auto;
+      justify-content: space-around;
+      align-items: center;
+      border-radius: 5vw;
+      background: white;
+      box-shadow: 0 0 10px #ccc;
+
+      .nav-item {
+        display: block;
+        width: 8vw;
+        height: 8vw;
+        border: 1px solid @main-color;
+        color: @main-color;
+        border-radius: 50%;
+        line-height: 8vw;
+        text-align: center;
+        &.active {
+          color: white;
+          background: @main-color;
+        }
+      }
+    }
+  }
+
+  .prev {
+    display: block;
+    position: fixed;
+    left: 0;
+    bottom: 10vw;
+    color: @darken-main-color;
+    height: 6vw;
+    line-height: 6vw;
+    padding: 0 2vw;
+    font-weight: bold;
+
+    border-left: 0;
+    border-right: 1px solid @main-color;
+    border-bottom: 1px solid @main-color;
+    border-top: 1px solid @main-color;
+
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-top-right-radius: 6vw;
+    border-bottom-right-radius: 6vw;
+  }
+
+  .next {
+    display: block;
+    position: fixed;
+    right: 0;
+    bottom: 10vw;
+    color: @darken-main-color;
+    height: 6vw;
+    line-height: 6vw;
+    padding: 0 2vw;
+    font-weight: bold;
+
+    border-right: 0;
+    border-left: 1px solid @main-color;
+    border-bottom: 1px solid @main-color;
+    border-top: 1px solid @main-color;
+
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-top-left-radius: 6vw;
+    border-bottom-left-radius: 6vw;
+  }
+}
+</style>
+
+<template>
+  <view class="wrapper" >
+    <NavigationBar title="词课" />
+    <view class="header" >
+      <view class="background" ></view>
+      <view class="nav" >
+        <view class="nav-item {{ pageIndex === 0 ? 'active' : '' }}" @tap="handleTapOnNavItem(0)" >听</view>
+        <view class="nav-item {{ pageIndex === 1 ? 'active' : '' }}" @tap="handleTapOnNavItem(1)" >说</view>
+        <view class="nav-item {{ pageIndex === 2 ? 'active' : '' }}" @tap="handleTapOnNavItem(2)" >写</view>
+        <view class="nav-item {{ pageIndex === 3 ? 'active' : '' }}" @tap="handleTapOnNavItem(3)" >译</view>
+      </view>
+      <view class="options" >
+        <view class="actions" >
+          <view wx:if="{{ word && word.isCollected }}" class="action fa fa-star active" @tap="handleToggleCollect" ></view>
+          <view wx:else class="action fa fa-star-o" @tap="handleToggleCollect" ></view>
+
+          <view class="action fa fa-times-circle-o" @tap="handleTapOnCorrection" ></view>
+        </view>
+        <view class="tabs" >
+          <view class="tab {{ showWordTab ? 'active' : '' }}" @tap="handleShowWordTab(true)" >单词</view>
+          <view class="tab {{ showWordTab ? '' : 'active' }}" @tap="handleShowWordTab(false)" >例句</view>
+        </view>
+      </view>
+    </view>
+    <view class="pages" >
+      <swiper
+        indicator-dots="{{false}}"
+        autoplay="{{false}}"
+        style="height: {{ swiperHeight }}px;"
+        current="{{ pageIndex }}"
+        circular="{{ false }}"
+        @change="handleSwiperChanged" >
+        
+        <swiper-item>
+          <scroll-view scroll-y="{{true}}" style="height: {{ swiperHeight }}px;" >
+            <ListenPage
+              :word.sync="word"
+              :statement.sync="statement"
+              :showWordTab.sync="showWordTab"
+              :showEnglish.sync="showEnglish" />
+          </scroll-view>
+        </swiper-item>
+
+        <swiper-item>
+          <scroll-view scroll-y="{{true}}" style="height: {{ swiperHeight }}px;" >
+            <SpeakPage
+              :word.sync="word"
+              :statement.sync="statement"
+              :showWordTab.sync="showWordTab"
+              :showEnglish.sync="showEnglish" />
+          </scroll-view>
+        </swiper-item>
+
+        <swiper-item>
+          <scroll-view scroll-y="{{true}}" style="height: {{ swiperHeight }}px;" >
+            <WritePage
+              :word.sync="word"
+              :statement.sync="statement"
+              :showWordTab.sync="showWordTab"
+              :showEnglish.sync="showEnglish" />
+          </scroll-view>
+        </swiper-item>
+
+        <swiper-item>
+          <scroll-view scroll-y="{{true}}" style="height: {{ swiperHeight }}px;" >
+            <TranslatePage
+              :word.sync="word"
+              :statement.sync="statement"
+              :showWordTab.sync="showWordTab"
+              :showEnglish.sync="showEnglish" />
+          </scroll-view>
+        </swiper-item>
+
+      </swiper>
+    </view>
+    <view class="prev" @tap="handleTapOnPrevBtn" >上一课</view>
+    <view class="next" @tap="handleTapOnNextBtn" >下一课</view>
+    <ErrorCorrectionDialog
+      :word.sync="word"
+      :statement.sync="statement" />
+
+    <!-- 不渲染，只是为了播放 -->
+    <Sounds
+      render="false"
+      playWhenChanged="true"
+      :showEnglish.sync="showEnglish"
+      :audios.sync="audio" />
+
+  </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+import Sounds from '../components/sounds'
+import NavigationBar from '../components/navigation-bar'
+import ErrorCorrectionDialog from '../components/error-correction-dialog'
+import { NAVIGATION_HEIGHT, SCREEN_HEIGHT, PXIEL_PER_VW } from '../constraint'
+import ListenPage from './ListenPage'
+import SpeakPage from './SpeakPage'
+import WritePage from './WritePage'
+import TranslatePage from './TranslatePage'
+import { getWord } from '../mock'
+
+export default class IndexPage extends wepy.page {
+  data = {
+    swiperHeight: 0,
+    pageIndex: 0,
+
+    showWordTab: true,
+    showEnglish: true,
+
+    word: null,
+    statementIndex: 0
+  }
+
+  components = {
+    Sounds,
+    NavigationBar,
+    ErrorCorrectionDialog,
+    ListenPage,
+    SpeakPage,
+    WritePage,
+    TranslatePage
+  }
+
+  computed = {
+    audio() {
+      if (this.showWordTab) {
+        return this.word
+      } else {
+        return this.statement
+      }
+    },
+    statement() {
+      if (!this.word) {
+        return null
+      }
+      const statements = this.word.statements || []
+      const statement = statements[this.statementIndex]
+      if (statement) {
+        statement.hasNext = (this.statementIndex + 1) < statements.length
+        return statement
+      } else {
+        return null
+      }
+    }
+  }
+
+  async onLoad() {
+    const HEADER_HEIGHT = (12 + 18) * PXIEL_PER_VW
+    this.swiperHeight = SCREEN_HEIGHT - NAVIGATION_HEIGHT - HEADER_HEIGHT
+    this.word = await getWord()
+    this.$apply()
+  }
+
+  events = {
+    'next-statement': () => {
+      this.statementIndex = this.statementIndex + 1
+      this.$apply()
+    },
+    'toggle-style': (showEnglish) => {
+      this.showEnglish = showEnglish
+      this.$apply()
+    }
+  }
+
+  methods = {
+    handleToggleCollect() {
+      const word = this.word
+      if (word) {
+        this.word = Object.assign(word, { isCollected: !word.isCollected })
+      }
+    },
+    handleTapOnCorrection() {
+      this.$invoke('ErrorCorrectionDialog', 'show')
+    },
+    handleTapOnNavItem(pageIndex) {
+      if (pageIndex !== this.pageIndex) {
+        this.pageIndex = pageIndex
+      }
+    },
+    handleSwiperChanged(e) {
+      const pageIndex = e.detail.current || 0
+      this.pageIndex = pageIndex
+      this.$apply(() => this.$invoke('Sounds', 'playAudio'))
+    },
+    handleShowWordTab(showWordTab) {
+      showWordTab = typeof showWordTab === 'string' ? JSON.parse(showWordTab) : showWordTab
+      if (showWordTab !== this.showWordTab) {
+        this.showWordTab = showWordTab
+        this.$apply()
+      }
+    },
+    async handleTapOnPrevBtn() {
+      const word = await getWord(this.word.index - 1)
+      if (word) {
+        this.statementIndex = 0
+        this.showWordTab = true
+        this.word = word
+        this.$apply()
+      } else {
+        wepy.showToast({ title: '已经是第一个单词', icon: 'none' })
+      }
+    },
+    async handleTapOnNextBtn() {
+      const word = await getWord(this.word.index + 1)
+      if (word) {
+        this.statementIndex = 0
+        this.showWordTab = true
+        this.word = word
+        this.$apply()
+      } else {
+        wepy.showToast({ title: '已经是最后一个单词', icon: 'none' })
+      }
+    }
+  }
+}
+
+</script>

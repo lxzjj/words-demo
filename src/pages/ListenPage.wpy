@@ -1,0 +1,135 @@
+<style lang="less" scoped>
+@import (css) "../font-awesome.wxss";
+@import "../common.less";
+
+.wrapper {
+  display: block;
+  position: relative;
+  padding: 0 5vw;
+  font-size: 16px;
+
+  .content {
+    color: @darken-main-color;
+    font-weight: bold;
+    font-size: 1.5em;
+    margin-bottom: 5vw;
+  }
+
+  .info {
+    display: flex;
+    position: relative;
+    flex-direction: row;
+    color: @darken-main-color;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5vw;
+
+    .pronunciation {
+      display: block;
+      position: relative;
+    }
+
+    .next-statement {
+      font-weight: bold;
+      .text {
+        margin-right: 1vw;
+      }
+    }
+  }
+
+  .translation {
+    padding: 5vw 0;
+    color: @darken-main-color;
+    border-top: 1px solid #f0f0f0;
+  }
+}
+</style>
+
+<template>
+  <view class="wrapper" wx:if="{{ word }}" >
+
+    <view class="word-tab" wx:if="{{ showWordTab }}" >
+      <view class="content">{{ word.value }}</view>
+      <view class="info" >
+        <view class="pronunciation">{{ pronunciation }}</view>
+        <WordSounds
+          :showEnglish.sync="showEnglish"
+          :audios.sync="word" />
+      </view>
+      <view class="translation" >{{ word.translation }}</view>
+    </view>
+
+    <view class="statement-tab" wx:else >
+      <view class="content">{{ statement.value }}</view>
+      <view class="info" >
+        <StatementSounds
+          :showEnglish.sync="showEnglish"
+          :audios.sync="statement" />
+        <view class="next-statement" wx:if="{{ statement.hasNext }}" @tap="moveNextStatement" >
+          <text class="text" >下一句</text>
+          <text class="fa fa-chevron-right" ></text>
+          <text class="fa fa-chevron-right" ></text>
+        </view>
+      </view>
+      <view class="translation" >{{ statement.translation }}</view>
+    </view>
+
+  </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+import Sounds from '../components/sounds'
+
+export default class ListenPage extends wepy.component {
+  data = { }
+
+  components = {
+    WordSounds: Sounds,
+    StatementSounds: Sounds
+  }
+
+  props = {
+    word: {
+      type: Object,
+      default: null
+    },
+    statement: {
+      type: Object,
+      default: null
+    },
+    showWordTab: {
+      type: [Boolean, String],
+      default: true,
+      coerce(v) {
+        return typeof v === 'string' ? JSON.parse(v) : v
+      }
+    },
+    showEnglish: {
+      type: [Boolean, String],
+      default: true,
+      coerce(v) {
+        return typeof v === 'string' ? JSON.parse(v) : v
+      }
+    }
+  }
+
+  computed = {
+    pronunciation() {
+      if (this.word) {
+        if (this.showEnglish) {
+          return this.word.english.pronunciation
+        } else {
+          return this.word.american.pronunciation
+        }
+      }
+    }
+  }
+
+  methods = {
+    moveNextStatement() {
+      this.$emit('next-statement', this.statement)
+    }
+  }
+}
+</script>

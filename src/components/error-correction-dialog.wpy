@@ -1,0 +1,263 @@
+<style lang="less" scoped>
+@import '../common.less';
+
+.dialog-wrapper {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  width: 100vw;
+  height: 100vh;
+
+  .dialog {
+    display: block;
+    position: relative;
+    width: 90vw;
+    border-radius: 2vw;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 0 5px #e0e0e0;
+    background: white;
+    color: @darken-main-color;
+    font-size: 16px;
+
+    .header {
+      display: flex;
+      flex-direction: row;
+      border-bottom: 1px solid #e0e0e0;
+      font-weight: bold;
+
+      .nav {
+        flex: 1;
+        display: flex;
+        position: relative;
+        flex-direction: row;
+        justify-content: center;
+
+        .text {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          height: 100%;
+          box-sizing: border-box;
+          padding: 0 1vw;
+        }
+
+        &.active {
+          .text {
+            border-bottom: 2px solid @main-color;
+          }
+        }
+      }
+    }
+
+    .body {
+      display: block;
+      position: relative;
+      padding: 5vw;
+
+      .error-report {
+        display: block;
+        position: relative;
+
+        .section {
+          display: block;
+          position: relative;
+          padding-bottom: 5vw;
+          margin-bottom: 10vw;
+          border-bottom: 1px solid #e0e0e0;
+
+          .content {
+            display: block;
+            position: relative;
+            margin: 2vw 0;
+          }
+
+          .action {
+            display: block;
+            position: relative;
+            color: #e0e0e0;
+          }
+        }
+      }
+
+      .error-correction {
+        display: block;
+        position: relative;
+
+        .section {
+          display: block;
+          position: relative;
+          padding-bottom: 5vw;
+          margin-bottom: 10vw;
+
+          .content {
+            display: block;
+            position: relative;
+            margin: 2vw 0;
+          }
+
+          .action {
+            display: flex;
+            flex-direction: row;
+
+            .input {
+              flex: 1;
+              border-bottom: 2px solid @darken-main-color;
+            }
+          }
+        }
+      }
+    }
+
+    .footer {
+      display: block;
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 90vw;
+      border-top: 1px solid #e0e0e0;
+
+      .buttons {
+        display: flex;
+        position: relative;
+        flex-direction: row;
+        height: 12vw;
+
+        .button {
+          flex: 1;
+          height: 100%;
+          display: flex;
+          position: relative;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          box-sizing: border-box;
+          border-right: 1px solid #e0e0e0;
+          &:last-child {
+            border-right: 0;
+          }
+
+          &.cancel { color: #707070; }
+          &.confirm { color: #000; }
+        }
+      }
+    }
+  }
+}
+
+</style>
+
+<template>
+  <view class="dialog-wrapper" wx:if="{{ showDialog }}" >
+    <view class="dialog" style="height: {{ dialogHeight }}px;" >
+      <view class="header" style="height: {{ dialogHeaderHeight }}px;" >
+        <view @tap="handleTapOnTab('0')" class="nav {{ tabIndex === 0 ? 'active' : '' }} " > <view class="text" >报错</view> </view>
+        <view @tap="handleTapOnTab('1')" class="nav {{ tabIndex === 1 ? 'active' : '' }} " > <view class="text" >纠错</view> </view>
+      </view>
+      <view class="body" style="height: {{ dialogHeight - dialogHeaderHeight }}px;">
+        <swiper
+          class="swiper"
+          style="height: {{ dialogHeight - dialogHeaderHeight }}px;"
+          indicator-dots="{{false}}"
+          autoplay="{{false}}"
+          current="{{ tabIndex }}"
+          circular="{{ false }}"
+          @change="handleSwiperChanged" >
+          <swiper-item class="swiper-item" >
+            <view class="error-report" >
+              <view class="section" >
+                <view class="content" >单词：{{ word.value }}</view>
+                <view class="action" >
+                  <switch type="switch" color="rgb(162, 198, 16)" @change="switchChange" /> 此处有误
+                </view>
+              </view>
+              <view class="section" >
+                <view class="content" >例句：{{ statement.value }}</view>
+                <view class="action" >
+                  <switch type="switch" color="rgb(162, 198, 16)" @change="switchChange" /> 此处有误
+                </view>
+              </view>
+            </view>
+          </swiper-item>
+          <swiper-item class="swiper-item" >
+            <view class="error-correction" >
+              <view class="section" >
+                <view class="content" >单词：{{ word.value }}</view>
+                <view class="action" >
+                  <view class="name">更正：</view>
+                  <input class="input" type="text" />
+                </view>
+              </view>
+              <view class="section" >
+                <view class="content" >例句：{{ statement.value }}</view>
+                <view class="action" >
+                  <view class="name">更正：</view>
+                  <input class="input" type="text" />
+                </view>
+              </view>
+            </view>
+          </swiper-item>
+        </swiper>
+      </view>
+      <view class="footer" >
+        <view class="buttons" >
+          <view @tap="handleTapOnCancelBtn" class="button cancel" >取消</view>
+          <view @tap="handleTapOnConfirmBtn" class="button confirm" >提交</view>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+import { SCREEN_HEIGHT, NAVIGATION_HEIGHT, PXIEL_PER_VW } from '../constraint'
+
+export default class ErrorCorrectionDialog extends wepy.component {
+  props = {
+    word: {
+      type: Object,
+      default: null
+    },
+    statement: {
+      type: Object,
+      default: null
+    }
+  }
+
+  data = {
+    showDialog: false,
+    tabIndex: 0,
+    dialogHeight: SCREEN_HEIGHT - 2 * NAVIGATION_HEIGHT,
+    dialogHeaderHeight: 12 * PXIEL_PER_VW
+  }
+
+  methods = {
+    handleTapOnTab(index) {
+      index = parseInt(index, 10) || 0
+      if (index !== this.tabIndex) {
+        this.tabIndex = index
+      }
+    },
+    handleSwiperChanged(e) {
+      const index = e.detail.current || 0
+      this.tabIndex = index
+    },
+    handleTapOnCancelBtn() {
+      this.showDialog = false
+    },
+    handleTapOnConfirmBtn() {
+      this.showDialog = false
+    },
+    show() {
+      this.showDialog = true
+    }
+  }
+}
+</script>
